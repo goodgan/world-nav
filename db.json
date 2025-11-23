@@ -1,0 +1,49 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "常用"
+    },
+    {
+      "id": 2,
+      "name": "开发"
+    },
+    {
+      "id": 3,
+      "name": "工具"
+    }
+  ],
+  "bookmarks": [
+    {
+      "id": 1,
+      "categoryId": 1,
+      "name": "Google",
+      "url": "https://google.com",
+      "icon": "",
+      "desc": "全球最大的搜索引擎",
+      "pinned": false
+    },
+    {
+      "id": 2,
+      "categoryId": 2,
+      "name": "GitHub",
+      "url": "https://github.com",
+      "icon": "",
+      "desc": "代码托管平台",
+      "pinned": false
+    },
+    {
+      "id": 3,
+      "categoryId": 3,
+      "name": "ChatGPT",
+      "url": "https://chat.openai.com",
+      "icon": "",
+      "desc": "AI 助手",
+      "pinned": false
+    }
+  ],
+  "auth": {
+    "passwordHash": "f6fdffe48c908deb0f4c3bd36c032e72",
+    "salt": "admin"
+  }
+}

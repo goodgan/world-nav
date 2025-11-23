@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Cloudflare Workers
+.wrangler/
+worker/
+dist/
+
+# Environment variables
+.env
+.dev.vars
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build output
+build/
+.cache/
+
+# Sensitive data (if any)
+db.json.backup
+*.bak

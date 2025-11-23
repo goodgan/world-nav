@@ -1,0 +1,10 @@
+name = "world-nav-backend"
+main = "src/worker.js"
+compatibility_date = "2023-10-02"
+
+# KV 命名空间配置
+# 部署前需要先创建 KV 并替换下面的 id
+[[kv_namespaces]]
+binding = "WORLD_NAV_KV"
+id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+preview_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

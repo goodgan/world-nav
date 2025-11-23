@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Nav - 管理后台</title>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">Word Nav</a>
+            <span class="navbar-text">管理后台</span>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="loginSection">
+            <div class="row justify-content-center">
+                <div class="col-md-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h4 class="card-title text-center mb-4">管理员登录</h4>
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="passwordInput" placeholder="请输入密码" required>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('passwordInput', this)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">登录</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="adminSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="bookmarks-tab" data-bs-toggle="tab"
+                            data-bs-target="#bookmarks" type="button">书签管理</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories"
+                            type="button">分类管理</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings"
+                            type="button">系统设置</button>
+                    </li>
+                </ul>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">退出登录</button>
+            </div>
+
+            <div class="tab-content" id="adminTabContent">
+                <!-- Bookmarks Tab -->
+                <div class="tab-pane fade show active" id="bookmarks" role="tabpanel">
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex gap-2 flex-grow-1" style="max-width: 600px;">
+                            <select class="form-select" id="adminCategoryFilter" style="max-width: 150px;">
+                                <option value="">所有分类</option>
+                            </select>
+                            <input type="text" class="form-control" id="adminSearchInput" placeholder="搜索书签（名称/URL/描述）...">
+                        </div>
+                        <button class="btn btn-success" onclick="showAddBookmarkModal()">+ 添加书签</button>
+                    </div>
+                    <div class="table-responsive bg-white rounded shadow-sm">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>名称</th>
+                                    <th>URL</th>
+                                    <th>分类</th>
+                                    <th>置顶</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookmarkTableBody">
+                                <!-- Bookmarks rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- 分页 -->
+                    <nav aria-label="书签分页" class="mt-3">
+                        <ul class="pagination justify-content-center mb-0" id="adminPagination">
+                            <!-- Pagination will be rendered here -->
+                        </ul>
+                    </nav>
+                    <div class="text-center mt-2 text-muted">
+                        <small>共 <span id="adminTotalCount">0</span> 个书签</small>
+                    </div>
+                </div>
+
+                <!-- Categories Tab -->
+                <div class="tab-pane fade" id="categories" role="tabpanel">
+                    <div class="mb-3 text-end">
+                        <button class="btn btn-success" onclick="showAddCategoryModal()">+ 添加分类</button>
+                    </div>
+                    <div class="table-responsive bg-white rounded shadow-sm">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>名称</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoryTableBody">
+                                <!-- Categories rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="tab-pane fade" id="settings" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">修改密码</h5>
+                                    <form id="passwordForm">
+                                        <div class="mb-3">
+                                            <label class="form-label">当前密码</label>
+                                            <div class="input-group">
+                                                <input type="password" class="form-control" id="currentPassword" required>
+                                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('currentPassword', this)">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">新密码</label>
+                                            <div class="input-group">
+                                                <input type="password" class="form-control" id="newPassword" required>
+                                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('newPassword', this)">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">新 Salt (可选)</label>
+                                            <input type="text" class="form-control" id="newSalt" placeholder="留空则不修改">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">保存修改</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmark Modal -->
+    <div class="modal fade" id="bookmarkModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookmarkModalTitle">添加书签</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookmarkForm">
+                        <input type="hidden" id="bmId">
+                        <div class="mb-3">
+                            <label class="form-label">名称</label>
+                            <input type="text" class="form-control" id="bmName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">URL</label>
+                            <input type="url" class="form-control" id="bmUrl" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">分类</label>
+                            <select class="form-select" id="bmCategory" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">描述</label>
+                            <textarea class="form-control" id="bmDesc" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="bmPinned">
+                            <label class="form-check-label" for="bmPinned">置顶书签（最多4个）</label>
+                        </div>
+                        <div class="alert alert-info mb-0" role="alert">
+                            <small>💡 图标将自动从网站获取，无需手动输入</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveBookmark()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="categoryModalTitle">添加分类</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="categoryForm">
+                        <input type="hidden" id="catId">
+                        <div class="mb-3">
+                            <label class="form-label">名称</label>
+                            <input type="text" class="form-control" id="catName" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCategory()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="js/md5.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+
+</html>
