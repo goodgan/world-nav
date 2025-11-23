@@ -17,11 +17,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // 检查是否已登录
     const savedToken = localStorage.getItem('authToken');
     const savedSalt = localStorage.getItem('salt');
-    if (savedToken) {
+    const tokenExpiry = localStorage.getItem('tokenExpiry');
+    
+    if (savedToken && tokenExpiry && Date.now() < parseInt(tokenExpiry)) {
         authToken = savedToken;
         currentSalt = savedSalt || 'admin';
         showAdminSection();
         fetchData();
+    } else if (savedToken) {
+        // Token 已过期
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('salt');
+        localStorage.removeItem('tokenExpiry');
+        alert('登录已过期，请重新登录');
     }
 
     // 启用登录表单
@@ -47,14 +55,15 @@ async function handleLogin(e) {
         const data = await res.json();
         if (data.success) {
             authToken = data.token;
-            currentSalt = data.salt; // 保存 salt
+            currentSalt = data.salt;
             localStorage.setItem('authToken', authToken);
             localStorage.setItem('salt', currentSalt);
+            localStorage.setItem('tokenExpiry', Date.now() + (data.expiresIn * 1000));
             showAdminSection();
             fetchData();
             document.getElementById('passwordInput').value = '';
         } else {
-            alert('密码错误！');
+            alert(data.error || '登录失败！');
         }
     } catch (err) {
         console.error(err);
@@ -130,6 +139,14 @@ async function saveData(newData) {
             },
             body: JSON.stringify(newData)
         });
+        
+        if (res.status === 401) {
+            const data = await res.json();
+            alert(data.error || '登录已过期，请重新登录');
+            logout();
+            return;
+        }
+        
         if (!res.ok) throw new Error('Failed to save');
         fetchData();
     } catch (err) {

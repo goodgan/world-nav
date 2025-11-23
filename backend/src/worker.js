@@ -161,13 +161,6 @@ export default {
 async function getDb(env) {
     const data = await env.WORLD_NAV_KV.get('db');
     if (!data) {
-        // Fallback to initial data if KV is empty (first run)
-        // In a real scenario, we might want to seed this.
-        // For now, let's return a default structure or error.
-        // We can try to fetch from a known location or just return empty.
-        // But wait, we have db.json in the root. 
-        // In a worker, we can't read local files directly unless bundled.
-        // Let's assume the user will initialize it via a POST or we hardcode defaults here.
         return {
             "categories": [
                 { "id": 1, "name": "常用" },
@@ -188,6 +181,56 @@ async function getDb(env) {
     return JSON.parse(data);
 }
 
+// 获取登录失败次数和锁定状态
+async function getLoginAttempts(env) {
+    const data = await env.WORLD_NAV_KV.get('login_attempts');
+    if (!data) {
+        return { attempts: 0, lockedUntil: null };
+    }
+    return JSON.parse(data);
+}
+
+// 更新登录失败次数
+async function updateLoginAttempts(env, attempts, lockedUntil) {
+    await env.WORLD_NAV_KV.put('login_attempts', JSON.stringify({ attempts, lockedUntil }));
+}
+
+// 生成 JWT Token（简化版，包含过期时间）
+function generateToken(passwordHash, salt) {
+    const now = Date.now();
+    const expiresAt = now + (12 * 60 * 60 * 1000); // 12小时后过期
+    const payload = {
+        hash: passwordHash,
+        salt: salt,
+        issuedAt: now,
+        expiresAt: expiresAt
+    };
+    // 简单的 Base64 编码（生产环境应使用真正的 JWT）
+    return btoa(JSON.stringify(payload));
+}
+
+// 验证 Token 是否过期
+function verifyToken(token, passwordHash) {
+    try {
+        const payload = JSON.parse(atob(token));
+        const now = Date.now();
+        
+        // 检查 Token 是否过期
+        if (now > payload.expiresAt) {
+            return { valid: false, reason: 'Token expired' };
+        }
+        
+        // 检查 Token 的密码哈希是否匹配
+        if (payload.hash !== passwordHash) {
+            return { valid: false, reason: 'Token mismatch' };
+        }
+        
+        return { valid: true, payload };
+    } catch (e) {
+        return { valid: false, reason: 'Invalid token' };
+    }
+}
+
 async function handleGetData(env, corsHeaders) {
     const db = await getDb(env);
     // Remove sensitive auth data before sending to frontend
@@ -199,29 +242,82 @@ async function handleLogin(request, env, corsHeaders) {
     const { password } = await request.json();
     const db = await getDb(env);
     const { passwordHash, salt } = db.auth;
+    
+    // 检查登录尝试次数和锁定状态
+    const loginAttempts = await getLoginAttempts(env);
+    const now = Date.now();
+    
+    // 如果被锁定，检查是否已过期
+    if (loginAttempts.lockedUntil && now < loginAttempts.lockedUntil) {
+        const remainingTime = Math.ceil((loginAttempts.lockedUntil - now) / 1000 / 60); // 分钟
+        return new Response(JSON.stringify({ 
+            success: false, 
+            error: `账户已锁定，请在 ${remainingTime} 分钟后重试` 
+        }), { status: 429, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+    }
+    
+    // 重置过期的锁定
+    if (loginAttempts.lockedUntil && now >= loginAttempts.lockedUntil) {
+        await updateLoginAttempts(env, 0, null);
+    }
 
     // MD5 + Salt 验证
     const inputHash = md5(password + salt);
 
     if (inputHash === passwordHash) {
-        // 返回 token (passwordHash) 和 salt
+        // 密码正确，重置失败次数
+        await updateLoginAttempts(env, 0, null);
+        
+        // 生成新的 Token（包含过期时间）
+        const token = generateToken(passwordHash, salt);
+        
         return new Response(JSON.stringify({ 
             success: true, 
-            token: passwordHash,
-            salt: salt 
+            token: token,
+            salt: salt,
+            expiresIn: 12 * 60 * 60 // 12小时（秒）
         }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
     } else {
-        return new Response(JSON.stringify({ success: false }), { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        // 密码错误，增加失败次数
+        let newAttempts = (loginAttempts.attempts || 0) + 1;
+        let newLockedUntil = null;
+        
+        // 3次失败后锁定1小时
+        if (newAttempts >= 3) {
+            newLockedUntil = now + (60 * 60 * 1000); // 1小时后解锁
+            await updateLoginAttempts(env, newAttempts, newLockedUntil);
+            return new Response(JSON.stringify({ 
+                success: false, 
+                error: '密码错误次数过多，账户已锁定1小时' 
+            }), { status: 429, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        } else {
+            await updateLoginAttempts(env, newAttempts, null);
+            return new Response(JSON.stringify({ 
+                success: false, 
+                error: `密码错误，还有 ${3 - newAttempts} 次尝试机会` 
+            }), { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+        }
     }
 }
 
 async function handleUpdateData(request, env, corsHeaders) {
-    // 验证 Authorization
+    // 验证 Authorization Token
     const authHeader = request.headers.get('Authorization');
     const db = await getDb(env);
     
-    if (!authHeader || authHeader !== db.auth.passwordHash) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+    if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Missing authorization token' }), { 
+            status: 401, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        });
+    }
+    
+    // 验证 Token 是否有效和未过期
+    const tokenVerification = verifyToken(authHeader, db.auth.passwordHash);
+    if (!tokenVerification.valid) {
+        return new Response(JSON.stringify({ 
+            error: tokenVerification.reason === 'Token expired' ? 'Token已过期，请重新登录' : 'Invalid token' 
+        }), { 
             status: 401, 
             headers: { 'Content-Type': 'application/json', ...corsHeaders } 
         });
@@ -236,12 +332,23 @@ async function handleUpdateData(request, env, corsHeaders) {
 }
 
 async function handleUpdatePassword(request, env, corsHeaders) {
-    // 验证 Authorization
+    // 验证 Authorization Token
     const authHeader = request.headers.get('Authorization');
     const db = await getDb(env);
 
-    if (!authHeader || authHeader !== db.auth.passwordHash) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+    if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Missing authorization token' }), { 
+            status: 401, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        });
+    }
+    
+    // 验证 Token 是否有效和未过期
+    const tokenVerification = verifyToken(authHeader, db.auth.passwordHash);
+    if (!tokenVerification.valid) {
+        return new Response(JSON.stringify({ 
+            error: tokenVerification.reason === 'Token expired' ? 'Token已过期，请重新登录' : 'Invalid token' 
+        }), { 
             status: 401, 
             headers: { 'Content-Type': 'application/json', ...corsHeaders } 
         });
