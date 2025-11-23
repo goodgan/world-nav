@@ -1,7 +1,7 @@
 {
   "name": "world-nav",
   "version": "1.0.0",
-  "description": "Word Nav: 我的网站导航",
+  "description": "World nav: 我的网站导航",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
