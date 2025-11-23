@@ -21,7 +21,8 @@
       "url": "https://google.com",
       "icon": "",
       "desc": "全球最大的搜索引擎",
-      "pinned": false
+      "pinned": false,
+      "createdAt": 1700000000000
     },
     {
       "id": 2,
@@ -30,7 +31,8 @@
       "url": "https://github.com",
       "icon": "",
       "desc": "代码托管平台",
-      "pinned": false
+      "pinned": false,
+      "createdAt": 1700000001000
     },
     {
       "id": 3,
@@ -39,7 +41,8 @@
       "url": "https://chat.openai.com",
       "icon": "",
       "desc": "AI 助手",
-      "pinned": false
+      "pinned": false,
+      "createdAt": 1700000002000
     }
   ],
   "auth": {

@@ -1,4 +1,4 @@
-const API_URL = 'https://world-nav-backend.mrgan-1225.workers.dev/api'; // Cloudflare Worker API
+const API_URL = 'https://nav.goodgan.top/api'; // Cloudflare Worker API
 
 let authToken = null;
 let currentSalt = 'admin'; // 默认 salt，登录后会更新
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 启用登录表单
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('passwordForm').addEventListener('submit', handlePasswordChange);
-    
+
     // 添加搜索和筛选监听
     document.getElementById('adminSearchInput').addEventListener('input', filterAndRenderBookmarks);
     document.getElementById('adminCategoryFilter').addEventListener('change', filterAndRenderBookmarks);
@@ -80,7 +80,7 @@ function logout() {
 function togglePassword(inputId, button) {
     const input = document.getElementById(inputId);
     const icon = button.querySelector('i');
-    
+
     if (input.type === 'password') {
         input.type = 'text';
         icon.classList.remove('bi-eye');
@@ -150,11 +150,14 @@ function filterAndRenderBookmarks() {
         return matchesSearch && matchesCat;
     });
 
-    // 置顶书签排在前面
+    // 置顶书签排在前面，置顶之下按时间倒序排序
     filteredBookmarks.sort((a, b) => {
         if (a.pinned && !b.pinned) return -1;
         if (!a.pinned && b.pinned) return 1;
-        return 0;
+        // 同为置顶或同为非置顶时，按时间倒序（新的在前）
+        const timeA = a.createdAt || a.id;
+        const timeB = b.createdAt || b.id;
+        return timeB - timeA;
     });
 
     currentPage = 1;
@@ -165,7 +168,7 @@ function filterAndRenderBookmarks() {
 function renderBookmarkTable() {
     const tbody = document.getElementById('bookmarkTableBody');
     tbody.innerHTML = '';
-    
+
     // 更新总数
     document.getElementById('adminTotalCount').textContent = filteredBookmarks.length;
 
@@ -303,7 +306,7 @@ function editBookmark(id) {
 function saveBookmark() {
     const id = document.getElementById('bmId').value;
     const name = document.getElementById('bmName').value;
-    const url = document.getElementById('bmUrl').value;
+    let url = document.getElementById('bmUrl').value.trim();
     const categoryId = parseInt(document.getElementById('bmCategory').value);
     const desc = document.getElementById('bmDesc').value;
     const pinned = document.getElementById('bmPinned').checked;
@@ -311,6 +314,11 @@ function saveBookmark() {
     if (!name || !url || !categoryId) {
         alert('请填写必填项');
         return;
+    }
+
+    // 自动添加协议前缀
+    if (!url.match(/^https?:\/\//i)) {
+        url = 'https://' + url;
     }
 
     // 自动获取图标
@@ -323,7 +331,7 @@ function saveBookmark() {
     }
 
     let newBookmarks = [...allBookmarks];
-    
+
     // 检查置顶数量限制
     if (pinned) {
         const pinnedCount = newBookmarks.filter(b => b.pinned && b.id != id).length;
@@ -332,7 +340,7 @@ function saveBookmark() {
             return;
         }
     }
-    
+
     if (id) {
         const index = newBookmarks.findIndex(b => b.id == id);
         if (index !== -1) {
@@ -340,7 +348,8 @@ function saveBookmark() {
         }
     } else {
         const newId = newBookmarks.length > 0 ? Math.max(...newBookmarks.map(b => b.id)) + 1 : 1;
-        newBookmarks.push({ id: newId, categoryId, name, url, icon, desc, pinned });
+        const createdAt = Date.now();
+        newBookmarks.push({ id: newId, categoryId, name, url, icon, desc, pinned, createdAt });
     }
 
     saveData({ bookmarks: newBookmarks, categories: allCategories });
@@ -441,10 +450,10 @@ async function handlePasswordChange(e) {
                 'Content-Type': 'application/json',
                 'Authorization': authToken
             },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 currentPassword,
-                newPassword, 
-                newSalt: finalSalt 
+                newPassword,
+                newSalt: finalSalt
             })
         });
 

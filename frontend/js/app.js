@@ -1,4 +1,4 @@
-const API_URL = 'https://world-nav-backend.mrgan-1225.workers.dev/api/data'; // Cloudflare Worker API
+const API_URL = 'https://nav.goodgan.top/api/data'; // Cloudflare Worker API
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchData();
@@ -171,11 +171,14 @@ function filterBookmarks() {
         return matchesSearch && matchesCat;
     });
 
-    // 置顶书签排在前面
+    // 置顶书签排在前面，置顶之下按时间倒序排序
     filtered.sort((a, b) => {
         if (a.pinned && !b.pinned) return -1;
         if (!a.pinned && b.pinned) return 1;
-        return 0;
+        // 同为置顶或同为非置顶时，按时间倒序（新的在前）
+        const timeA = a.createdAt || a.id;
+        const timeB = b.createdAt || b.id;
+        return timeB - timeA;
     });
 
     renderBookmarks(filtered);
