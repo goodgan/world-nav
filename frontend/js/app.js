@@ -96,15 +96,15 @@ function renderBookmarks(bookmarks) {
             : `<div class="bookmark-icon mb-3">${bm.name.charAt(0).toUpperCase()}</div>`;
 
         const catName = allCategories.find(c => c.id == bm.categoryId)?.name || '未分类';
-        const pinnedBadge = bm.pinned ? '<span class="badge bg-success text-white position-absolute top-0 start-0 m-2">📌 置顶</span>' : '';
+        const pinnedBadge = bm.pinned ? '<span class="pinned-badge">📌</span>' : '';
 
         card.innerHTML = `
             <div class="tooltip-desc">${bm.desc || bm.name}</div>
             ${pinnedBadge}
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between align-items-start mb-3">
                     ${iconHtml}
-                    <span class="badge bg-light text-dark border">${catName}</span>
+                    <span class="category-badge">${catName}</span>
                 </div>
                 <h5 class="bookmark-title">${bm.name}</h5>
                 <p class="bookmark-desc" title="${bm.desc}">${bm.desc}</p>

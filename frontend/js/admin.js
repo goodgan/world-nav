@@ -186,21 +186,33 @@ function renderBookmarkTable() {
 
     currentBookmarks.forEach(bm => {
         const catName = allCategories.find(c => c.id == bm.categoryId)?.name || '未知';
-        const pinnedBadge = bm.pinned ? '<span class="badge bg-success text-white">📌 已置顶</span>' : '<span class="badge bg-secondary">未置顶</span>';
+        const pinnedBadge = bm.pinned ? '<span class="badge bg-success text-white">📌</span>' : '<span class="badge bg-secondary">-</span>';
         const tr = document.createElement('tr');
         tr.className = bm.pinned ? 'table-success' : '';
         tr.innerHTML = `
-            <td>${bm.id}</td>
-            <td>${bm.name}</td>
-            <td><a href="${bm.url}" target="_blank" class="text-truncate" style="max-width: 300px; display: inline-block;">${bm.url}</a></td>
-            <td><span class="badge bg-light text-dark border">${catName}</span></td>
-            <td>${pinnedBadge}</td>
-            <td>
-                <button class="btn btn-sm btn-success" onclick="togglePin(${bm.id})" title="${bm.pinned ? '取消置顶' : '置顶书签'}">
-                    ${bm.pinned ? '📌' : '📍'}
+            <td data-label="ID">${bm.id}</td>
+            <td data-label="名称">${bm.name}</td>
+            <td data-label="URL"><a href="${bm.url}" target="_blank" class="text-truncate" style="max-width: 300px; display: inline-block;">${bm.url}</a></td>
+            <td data-label="分类"><span class="badge bg-light text-dark border">${catName}</span></td>
+            <td data-label="置顶">${pinnedBadge}</td>
+            <td data-label="操作">
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-success" onclick="togglePin(${bm.id})" title="${bm.pinned ? '取消置顶' : '置顶书签'}">
+                        ${bm.pinned ? '📌' : '📍'}
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="editBookmark(${bm.id})">✏️</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteBookmark(${bm.id})">🗑️</button>
+                </div>
+                <button class="mobile-toggle-btn" onclick="toggleMobileActions(this, event)">
+                    操作 <i>▼</i>
                 </button>
-                <button class="btn btn-sm btn-primary" onclick="editBookmark(${bm.id})">编辑</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteBookmark(${bm.id})">删除</button>
+                <div class="action-buttons-mobile">
+                    <button class="btn btn-sm btn-success" onclick="togglePin(${bm.id})" title="${bm.pinned ? '取消置顶' : '置顶书签'}">
+                        ${bm.pinned ? '📌' : '📍'}
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="editBookmark(${bm.id})">✏️</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteBookmark(${bm.id})">🗑️</button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -369,11 +381,24 @@ function renderCategoryTable() {
     allCategories.forEach(cat => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${cat.id}</td>
-            <td>${cat.name}</td>
-            <td>
-                <button class="btn btn-sm btn-primary" onclick="editCategory(${cat.id})">编辑</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteCategory(${cat.id})">删除</button>
+            <td data-label="ID">${cat.id}</td>
+            <td data-label="名称">
+                <span class="badge bg-light text-dark border" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                    📁 ${cat.name}
+                </span>
+            </td>
+            <td data-label="操作">
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-primary" onclick="editCategory(${cat.id})">✏️ 编辑</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCategory(${cat.id})">🗑️ 删除</button>
+                </div>
+                <button class="mobile-toggle-btn" onclick="toggleMobileActions(this, event)">
+                    操作 <i>▼</i>
+                </button>
+                <div class="action-buttons-mobile">
+                    <button class="btn btn-sm btn-primary" onclick="editCategory(${cat.id})">✏️ 编辑</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCategory(${cat.id})">🗑️ 删除</button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -466,5 +491,29 @@ async function handlePasswordChange(e) {
         }
     } catch (err) {
         alert('修改失败: ' + err.message);
+    }
+}
+
+// 移动端操作按钮展开/收起
+function toggleMobileActions(button, event) {
+    event.stopPropagation();
+    const mobileActions = button.nextElementSibling;
+    const isActive = button.classList.contains('active');
+    
+    // 关闭所有其他展开的操作按钮
+    document.querySelectorAll('.mobile-toggle-btn.active').forEach(btn => {
+        if (btn !== button) {
+            btn.classList.remove('active');
+            btn.nextElementSibling.classList.remove('show');
+        }
+    });
+    
+    // 切换当前按钮状态
+    if (isActive) {
+        button.classList.remove('active');
+        mobileActions.classList.remove('show');
+    } else {
+        button.classList.add('active');
+        mobileActions.classList.add('show');
     }
 }
